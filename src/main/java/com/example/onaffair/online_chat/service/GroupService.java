@@ -18,4 +18,6 @@ public interface GroupService {
 
     boolean deleteGroup(Integer id);
 
+    List<Group> getAllGroups();
+
 }

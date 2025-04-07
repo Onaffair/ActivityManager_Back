@@ -120,6 +120,21 @@ public class GroupController {
         }
     }
 
+    @PostMapping("/update-group")
+    public Result<Group> updateGroup(@RequestBody Group group) {
+        String account = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!group.getOwnerAccount().equals(account)){
+            return Result.error(ResultCode.FORBIDDEN, "权限不足");
+        }
+        try {
+            if (groupService.updateGroup(group)){
+                return Result.success(ResultCode.SUCCESS, group);
+            }
+            return Result.error(ResultCode.ERROR, "服务器异常");
+        }catch (Exception e){
+            return Result.error(ResultCode.ERROR, "服务器异常");
+        }
+    }
 
     public GroupResponse generateGroupResponse(Group group) {
         List<GroupMember> groupMemberList = groupMemberService.getGroupMemberList(group.getGroupId());
@@ -133,5 +148,7 @@ public class GroupController {
         }};
         return groupResponse;
     }
+
+
 
 }

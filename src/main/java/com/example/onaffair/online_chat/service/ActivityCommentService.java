@@ -9,4 +9,6 @@ public interface ActivityCommentService {
 
     List<ActivityComment> getCommentByActivityID(Integer activityID);
 
+    boolean deleteCommentByActivityID(Integer activityID);
+
 }

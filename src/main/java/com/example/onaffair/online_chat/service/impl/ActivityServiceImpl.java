@@ -86,6 +86,25 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
+    public boolean deleteActivityParticipationByActivityId(Integer activityId) {
+        QueryWrapper<UserParticipation> queryWrapper = new QueryWrapper<UserParticipation>()
+                .eq("activity_id", activityId);
+
+        if (userParticipationMapper.selectCount(queryWrapper) == 0){
+            return true;
+        }
+
+        return userParticipationMapper.delete(queryWrapper) > 0;
+    }
+
+    @Override
+    public List<Activity> getAllActivities() {
+        QueryWrapper<Activity> queryWrapper = new QueryWrapper<>();
+        queryWrapper.orderByDesc("created_at");
+        return activityMapper.selectList(queryWrapper);
+    }
+
+    @Override
     public List<Activity> getTopActivity(Integer num) {
         QueryWrapper<Activity> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("status",ActivityStatus.REGISTRATION_OPEN.getId())

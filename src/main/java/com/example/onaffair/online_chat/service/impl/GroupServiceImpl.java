@@ -13,7 +13,6 @@ import java.util.List;
 public class GroupServiceImpl implements GroupService {
 
 
-
     @Autowired
     private GroupMapper groupMapper;
 
@@ -46,6 +45,11 @@ public class GroupServiceImpl implements GroupService {
     @Override
     public boolean updateGroup(Group group) {
         return groupMapper.updateById(group) > 0;
+    }
+
+    @Override
+    public List<Group> getAllGroups() {
+        return groupMapper.selectList(null);
     }
 
     @Override

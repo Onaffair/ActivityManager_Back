@@ -54,7 +54,14 @@ public class UserController {
         try {
             User target = userService.findByAccountAndPassword(userLoginRequest);
 
+
+
             if (target != null) {
+
+                if (target.getStatus().equals("banned")){
+                    return Result.error(ResultCode.ERROR, "用户已被封禁");
+                }
+
                 String token = JwtUtil.generateToken(
                         target.getAccount(),
                         target.getRole()
@@ -70,6 +77,9 @@ public class UserController {
                     setStatus("online");
                     setRole(target.getRole());
                 }};
+
+                //更新登录状态
+                target.setStatus("online");
                 userService.updateUser(userLoginRequest.getAccount(), target);
 
                 return Result.success(ResultCode.SUCCESS, res);
@@ -132,7 +142,17 @@ public class UserController {
 
             String originalFilename = file.getOriginalFilename();
 
-            if (!originalFilename.endsWith(".jpg") && !originalFilename.endsWith(".png")) {
+            // 允许所有图片格式，这里假设只检查常见的图片格式
+            String[] allowedExtensions = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"};
+            boolean isAllowed = false;
+            for (String ext : allowedExtensions) {
+                if (originalFilename.toLowerCase().endsWith(ext)) {
+                    isAllowed = true;
+                    break;
+                }
+            }
+
+            if (!isAllowed) {
                 return Result.error(ResultCode.ERROR, "文件格式错误");
             }
 
@@ -182,6 +202,10 @@ public class UserController {
         String account = context.getAuthentication().getName();
 
         User user = userService.findByAccount(account);
+
+        if (user.getStatus().equals("banned")){
+            return Result.error(ResultCode.ERROR, "您的账号已被封禁");
+        }
 
         String token = JwtUtil.generateToken(
                 user.getAccount(),

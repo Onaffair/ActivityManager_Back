@@ -1,10 +1,13 @@
 package com.example.onaffair.online_chat.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
@@ -35,5 +38,8 @@ public class User {
 
     @TableField("role")
     private Integer role;
+
+    @TableField(value = "created_at",fill = FieldFill.DEFAULT)
+    private LocalDateTime createdAt;
 
 }

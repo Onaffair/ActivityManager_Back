@@ -21,5 +21,8 @@ public interface UserService {
 
     List<UserInfoResponse> getUserInfo (List<String> accountList);
 
+    List<User> getAllUsers();
+
+
 
 }

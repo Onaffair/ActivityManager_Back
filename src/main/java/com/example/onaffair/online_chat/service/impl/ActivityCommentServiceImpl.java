@@ -22,6 +22,15 @@ public class ActivityCommentServiceImpl implements ActivityCommentService {
     }
 
     @Override
+    public boolean deleteCommentByActivityID(Integer activityID) {
+        QueryWrapper<ActivityComment> queryWrapper = new QueryWrapper<ActivityComment>().eq("activity_id", activityID);
+        if (activityCommentMapper.selectCount(queryWrapper) == 0){
+            return true;
+        }
+        return activityCommentMapper.delete(queryWrapper) > 0;
+    }
+
+    @Override
     public List<ActivityComment> getCommentByActivityID(Integer activityID) {
         QueryWrapper<ActivityComment> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("activity_id",activityID);

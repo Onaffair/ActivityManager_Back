@@ -10,4 +10,6 @@ public interface GroupMessageService {
 
     List<GroupMessage> getGroupMessageList(Integer groupId);
 
+    boolean deleteGroupMessageByGroupId(Integer groupId);
+
 }

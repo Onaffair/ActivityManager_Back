@@ -14,5 +14,6 @@ public interface GroupMemberService {
 
     List<GroupMember> getGroupMemberListByAccount(String account);
 
+    boolean deleteGroupMemberByGroupId(Integer groupId);
 
 }

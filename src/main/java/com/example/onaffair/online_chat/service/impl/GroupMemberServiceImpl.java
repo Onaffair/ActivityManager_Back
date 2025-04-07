@@ -33,6 +33,17 @@ public class GroupMemberServiceImpl implements GroupMemberService {
     }
 
     @Override
+    public boolean deleteGroupMemberByGroupId(Integer groupId) {
+        QueryWrapper<GroupMember> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("group_id",groupId);
+
+        if (groupMemberMapper.selectCount(queryWrapper) == 0){
+            return true;
+        }
+        return groupMemberMapper.delete(queryWrapper) > 0;
+    }
+
+    @Override
     public List<GroupMember> getGroupMemberListByAccount(String account) {
         QueryWrapper<GroupMember> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("user_account",account);

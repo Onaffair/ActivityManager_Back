@@ -77,6 +77,13 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
+    public List<User> getAllUsers() {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.orderByDesc("created_at");
+        return userMapper.selectList(queryWrapper);
+    }
+
+    @Override
     public List<UserInfoResponse> getUserInfo(List<String> accountList) {
         if(accountList == null || accountList.isEmpty()){
             return Collections.emptyList();

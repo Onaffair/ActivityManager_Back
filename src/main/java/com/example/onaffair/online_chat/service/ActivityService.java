@@ -30,4 +30,7 @@ public interface ActivityService {
 
     List<Activity> getTopActivity(Integer num);
 
+    List<Activity> getAllActivities();
+
+    boolean deleteActivityParticipationByActivityId(Integer activityId);
 }

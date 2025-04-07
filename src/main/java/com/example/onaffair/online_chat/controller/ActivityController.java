@@ -67,6 +67,13 @@ public class ActivityController {
 
             activityService.createActivity(activity);
 
+            UserParticipation userParticipation = new UserParticipation() {{
+                setUserAccount(organizer);
+                setActivityId(activity.getId());
+            }};
+
+            activityService.joinActivity(userParticipation);
+
             return Result.success(activity);
         }catch (Exception e){
             return Result.error(ResultCode.ERROR,"服务器错误");

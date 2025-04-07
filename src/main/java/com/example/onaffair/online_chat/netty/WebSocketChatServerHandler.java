@@ -4,6 +4,7 @@ import com.example.onaffair.online_chat.dto.WebsocketMessage;
 import com.example.onaffair.online_chat.entity.FriendMessage;
 import com.example.onaffair.online_chat.entity.GroupMember;
 import com.example.onaffair.online_chat.entity.GroupMessage;
+import com.example.onaffair.online_chat.entity.User;
 import com.example.onaffair.online_chat.service.GroupMemberService;
 import com.example.onaffair.online_chat.service.GroupMessageService;
 import com.example.onaffair.online_chat.util.ChannelManager;
@@ -113,7 +114,13 @@ public class WebSocketChatServerHandler extends SimpleChannelInboundHandler<Text
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        ChannelManager.removeChannel(getAccount(ctx),ctx.channel());
+        String account = getAccount(ctx);
+        ChannelManager.removeChannel(account,ctx.channel());
+        /*用户下线*/
+        User user = userService.findByAccount(account);
+        user.setStatus("offline");
+        userService.updateUser(account,user);
+
 //        System.out.println(ctx.channel().remoteAddress()+"下线了");
     }
     @Override
@@ -131,6 +138,14 @@ public class WebSocketChatServerHandler extends SimpleChannelInboundHandler<Text
             //添加到map统一管理
             String account = getAccount(ctx);
             ChannelManager.addChannel(account, ctx.channel());
+
+
+
+            /*用户上线*/
+            User user = userService.findByAccount(account);
+            user.setStatus("online");
+            userService.updateUser(account,user);
+
         }
         super.userEventTriggered(ctx, evt);
     }
