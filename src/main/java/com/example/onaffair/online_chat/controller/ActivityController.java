@@ -74,6 +74,7 @@ public class ActivityController {
 
             activityService.joinActivity(userParticipation);
 
+
             return Result.success(activity);
         }catch (Exception e){
             return Result.error(ResultCode.ERROR,"服务器错误");

@@ -5,12 +5,15 @@ import lombok.Getter;
 @Getter
 public enum ActivityCategory {
     ALL(0, "所有分类"),
-    STUDY(1, "学习"),
-    TRAVEL(2, "旅游"),
-    SPORTS(3, "运动"),
-    ENTERTAINMENT(4, "休闲娱乐"),
-    GATHERING(5, "聚会"),
-    OTHER(9, "其它");
+    VOLUNTEER(1, "志愿服务"),
+    FESTIVAL(2, "节日庆典"),
+    PUBLIC_WELFARE(3, "公益便民"),
+    CULTURAL(4, "文化活动"),
+    SPORTS(5, "健康运动"),
+    EDUCATION(6, "教育培训"),
+    NEIGHBORHOOD(7, "邻里互助"),
+    GOVERNMENT(8, "街道政务"),
+    OTHER(9, "其它活动");
 
     private final int id;
     private final String name;

@@ -20,7 +20,6 @@ public class ActivityRequest {
     private String title;
 
     @NotNull(message = "活动分类不能为空")
-    @Min(value = 1, message = "无效的分类")
     private Integer categoryId;
 
     @NotBlank(message = "活动亮点不能为空")

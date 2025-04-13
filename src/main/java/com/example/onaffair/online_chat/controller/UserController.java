@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.system.ApplicationHome;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -50,11 +51,9 @@ public class UserController {
     private ObjectMapper objectMapper;
 
     @PostMapping("/public/login")
-    public Result<UserLoginRegisterResponse> userLogin(@RequestBody UserLoginRequest userLoginRequest) {
+    public Result<UserLoginRegisterResponse> userLogin(@Validated @RequestBody UserLoginRequest userLoginRequest) {
         try {
             User target = userService.findByAccountAndPassword(userLoginRequest);
-
-
 
             if (target != null) {
 

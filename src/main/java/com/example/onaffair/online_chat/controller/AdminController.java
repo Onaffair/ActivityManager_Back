@@ -2,10 +2,7 @@ package com.example.onaffair.online_chat.controller;
 
 import com.example.onaffair.online_chat.dto.GroupResponse;
 import com.example.onaffair.online_chat.dto.UserInfoResponse;
-import com.example.onaffair.online_chat.entity.Activity;
-import com.example.onaffair.online_chat.entity.Group;
-import com.example.onaffair.online_chat.entity.GroupMember;
-import com.example.onaffair.online_chat.entity.User;
+import com.example.onaffair.online_chat.entity.*;
 import com.example.onaffair.online_chat.enums.ResultCode;
 import com.example.onaffair.online_chat.service.*;
 
@@ -27,6 +24,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin")
 @PreAuthorize("hasRole('ROLE_ADMIN')")
+
 
 public class AdminController {
 
@@ -136,6 +134,42 @@ public class AdminController {
             return Result.success(true);
         } catch (Exception e) {
             // Transaction will automatically rollback due to @Transactional
+            return Result.error(ResultCode.ERROR, e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/delete-group-member")
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Boolean> deleteGroupMember(@RequestParam("groupId") Integer groupId, 
+                                           @RequestParam("userAccount") String userAccount) {
+        try {
+            Group group = groupService.getGroupById(groupId);
+            if (group == null) {
+                throw new RuntimeException("群组不存在");
+            }
+
+            // 从群组中移除成员
+            GroupMember groupMember = new GroupMember() {{
+                setGroupId(groupId);
+                setUserAccount(userAccount);
+            }};
+            
+            if (!groupMemberService.removeGroupMember(groupMember)) {
+                throw new RuntimeException("移除群组成员失败");
+            }
+
+            // 取消该成员对相关活动的报名
+            UserParticipation userParticipation = new UserParticipation() {{
+                setActivityId(group.getActivityId());
+                setUserAccount(userAccount);
+            }};
+            
+            if (!activityService.cancelActivityJoin(userParticipation)) {
+                throw new RuntimeException("取消活动报名失败");
+            }
+
+            return Result.success(true);
+        } catch (Exception e) {
             return Result.error(ResultCode.ERROR, e.getMessage());
         }
     }
