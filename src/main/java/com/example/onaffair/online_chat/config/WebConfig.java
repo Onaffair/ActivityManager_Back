@@ -1,6 +1,7 @@
 package com.example.onaffair.online_chat.config;
 
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -14,17 +15,19 @@ import java.util.concurrent.Executor;
 @EnableAsync
 public class WebConfig implements WebMvcConfigurer {
 
+    @Bean(name = "myExecutor")
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(10);
         executor.setMaxPoolSize(20);
         executor.setQueueCapacity(50);
-        executor.setAwaitTerminationSeconds(60); // 等待异步任务完成的最长时间
+        executor.setAwaitTerminationSeconds(60*10); // 等待异步任务完成的最长时间
         executor.setWaitForTasksToCompleteOnShutdown(true); // 关闭时等待任务完成
         executor.setThreadNamePrefix("Async-");
         executor.initialize();
         return executor;
     }
+
     //前后端一个有配就行
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -39,8 +42,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // 映射运行时路径
-        registry.addResourceHandler("/static/avatar/**")
-                .addResourceLocations("file:D:\\Code\\Database\\avatar\\");
+        registry.addResourceHandler("/static/image/**")
+                .addResourceLocations("file:D:\\Code\\Database\\images\\");
+
     }
 }
 

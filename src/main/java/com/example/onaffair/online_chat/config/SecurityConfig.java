@@ -22,19 +22,20 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
-        httpSecurity.csrf().disable()
-                .cors().and()
+        httpSecurity.csrf(csrf -> csrf.disable())
+                .cors(cors -> {})
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/*/public/**",
                                 "/api/test/**",
-                                "/static/avatar/**").permitAll()
+                                "/static/**",
+                                "/api/ai/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN") // 管理员接口,会自动补全 "ROLE_"
                         .anyRequest().authenticated())
 
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        httpSecurity.addFilterAfter(jwtRequestFilter, SecurityContextHolderAwareRequestFilter.class);
+        httpSecurity.addFilterBefore(jwtRequestFilter, SecurityContextHolderAwareRequestFilter.class);
 
         return httpSecurity.build();
     }

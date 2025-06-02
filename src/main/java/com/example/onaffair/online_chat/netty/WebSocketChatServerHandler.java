@@ -114,12 +114,12 @@ public class WebSocketChatServerHandler extends SimpleChannelInboundHandler<Text
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        String account = getAccount(ctx);
-        ChannelManager.removeChannel(account,ctx.channel());
+//        String account = getAccount(ctx);
+//        ChannelManager.removeChannel(account,ctx.channel());
         /*用户下线*/
-        User user = userService.findByAccount(account);
-        user.setStatus("offline");
-        userService.updateUser(account,user);
+//        User user = userService.findByAccount(account);
+//        user.setStatus("offline");
+//        userService.updateUser(account,user);
 
 //        System.out.println(ctx.channel().remoteAddress()+"下线了");
     }

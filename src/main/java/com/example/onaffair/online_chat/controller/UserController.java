@@ -12,8 +12,8 @@ import com.example.onaffair.online_chat.enums.ResultCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.system.ApplicationHome;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
@@ -22,15 +22,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 import java.util.*;
 
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
 
-    private static final String UPLOAD_DIR = "D:\\Code\\Database\\avatar\\";
+    private final static String UPLOAD_IMAGE_PATH = "D:\\Code\\Database\\images\\";
 
     @Autowired
     private UserService userService;
@@ -49,6 +47,13 @@ public class UserController {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private AIChatSessionService aiChatSessionService;
+
+    @Autowired
+    private AIChatLogService aiChatLogService;
+
 
     @PostMapping("/public/login")
     public Result<UserLoginRegisterResponse> userLogin(@Validated @RequestBody UserLoginRequest userLoginRequest) {
@@ -87,6 +92,35 @@ public class UserController {
         } catch (Exception e) {
             return Result.error(ResultCode.ERROR, "服务器错误");
         }
+    }
+
+    @PostMapping("/public/wxlogin")
+    public Result<UserLoginRegisterResponse> userWxLogin(@RequestParam("code") @NotBlank String code,
+                                                         @RequestBody WXLoginDTO userinfo) {
+        try {
+            User user = userService.userWxLogin(code, userinfo);
+            if (user != null) {
+                String token = JwtUtil.generateToken(
+                        user.getAccount(),
+                        user.getRole()
+                );
+                UserLoginRegisterResponse res = new UserLoginRegisterResponse() {{
+                    setUsername(user.getUsername());
+                    setToken(token);
+                    setAvatar(user.getAvatar());
+                    setAccount(user.getAccount());
+                    setEmail(user.getEmail());
+                    setPhone(user.getPhone());
+                    setRole(user.getRole());
+                    setStatus("online");
+                }};
+
+                return Result.success(ResultCode.SUCCESS, res);
+            }
+        }catch (RuntimeException e){
+            return Result.error(ResultCode.ERROR, e.getMessage());
+        }
+        return Result.error(ResultCode.ERROR, "服务器错误");
     }
 
     @PostMapping("/public/register")
@@ -150,16 +184,15 @@ public class UserController {
                     break;
                 }
             }
-
             if (!isAllowed) {
                 return Result.error(ResultCode.ERROR, "文件格式错误");
             }
 
-            String filePrefix = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+            String filePrefix = UUID.randomUUID().toString();
             String fileNameSuffix = "." + originalFilename.split("\\.")[1];
             String fileName = filePrefix + fileNameSuffix;
 
-            String basePath = "D:\\Code\\Database\\avatar\\";
+            String basePath = UPLOAD_IMAGE_PATH;
             String path = basePath + fileName;
             try {
                 File dir = new File(basePath);
@@ -232,7 +265,7 @@ public class UserController {
         }
     }
 
-    @DeleteMapping("/public/avatar/{fileName}")
+    @DeleteMapping("/image/{fileName}")
     public Result<String> deleteAvatar(@PathVariable String fileName) {
         try {
             // 防止路径遍历攻击
@@ -240,7 +273,7 @@ public class UserController {
                 return Result.error(ResultCode.ERROR, "非法文件名");
             }
 
-            File targetFile = new File(UPLOAD_DIR + fileName);
+            File targetFile = new File(UPLOAD_IMAGE_PATH + fileName);
 
             if (!targetFile.exists()) {
                 return Result.error(ResultCode.ERROR, "文件不存在");
@@ -319,7 +352,6 @@ public class UserController {
 
             return Result.success(ResultCode.SUCCESS, res);
         } catch (Exception e) {
-            e.printStackTrace();
             return Result.error(ResultCode.ERROR, "服务器错误");
         }
     }
@@ -347,7 +379,6 @@ public class UserController {
             }
             return Result.error(ResultCode.FORBIDDEN, "发送失败");
         } catch (Exception e) {
-            e.printStackTrace();
             return Result.error(ResultCode.ERROR, "服务器错误");
         }
     }
@@ -384,7 +415,6 @@ public class UserController {
             }
             return Result.error(ResultCode.ERROR, "添加失败");
         } catch (Exception e) {
-            e.printStackTrace();
             return Result.error(ResultCode.ERROR, "服务器错误");
         }
     }
@@ -399,7 +429,6 @@ public class UserController {
             }
             return Result.error(ResultCode.ERROR, "拒绝失败");
         } catch (Exception e) {
-            e.printStackTrace();
             return Result.error(ResultCode.ERROR, "服务器错误");
         }
     }
@@ -455,7 +484,6 @@ public class UserController {
 
             return Result.success(ResultCode.SUCCESS, res);
         } catch (Exception e) {
-            e.printStackTrace();
             return Result.error(ResultCode.ERROR, "服务器错误");
         }
     }
@@ -484,4 +512,25 @@ public class UserController {
         }
     }
 
+    @GetMapping("/my-session")
+    public Result<List<AIChatSession> > getAIChatHistory() {
+        try {
+            List<AIChatSession> res ;
+            String account = SecurityContextHolder.getContext().getAuthentication().getName();
+            res = aiChatSessionService.getAIChatSessionListByUserAccount(account);
+            return Result.success(res);
+        }catch (Exception e){
+            return Result.error(ResultCode.ERROR,e.getMessage());
+        }
+    }
+
+    @GetMapping("/session-chat-history")
+    public Result<List<AIChatLog>> getAIChatHistory(@RequestParam("sessionId") String sessionId) {
+        try {
+            List<AIChatLog> res = aiChatLogService.getAIChatLogListBySessionId(sessionId);
+            return Result.success(res);
+        }catch (Exception e){
+            return Result.error(ResultCode.ERROR,e.getMessage());
+        }
+    }
 }

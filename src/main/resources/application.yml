@@ -25,6 +25,30 @@ mybatis-plus:
             update-strategy: not_empty
     type-handlers-package: com.example.onaffair.online_chat.handler
 
+wx:
+    mini-app:
+        appid: ${WX_APPID:}
+        secret: ${WX_SECRET:}
+
+ai:
+    api:
+        deepseek:
+            key: ${DEEPSEEK_API:}
+            url: https://api.deepseek.com/v1/chat/completions
+            model: deepseek-chat
+        VL:
+            key: ${DASHSCOPE_API}
+            url: https://api.siliconflow.cn/v1/chat/completions
+            model: deepseek-ai/deepseek-vl2
+
+oss:
+    address: https://oss-cn-hangzhou.aliyuncs.com
+    access-id: ${ALIYUN_ACCESSKEY_ID:}
+    access-key: ${ALIYUN_ACCESSKEY_SECRET:}
+    bucket: onaffair
+    role-arn: ${ALIYUN_OSS_STS_ROLE_ARN}
+    region: oss-cn-hangzhou
+
 server:
     port: 721
 

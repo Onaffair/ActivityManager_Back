@@ -11,6 +11,7 @@ import com.example.onaffair.online_chat.enums.CityENUM;
 import com.example.onaffair.online_chat.enums.ResultCode;
 import com.example.onaffair.online_chat.service.ActivityCommentService;
 import com.example.onaffair.online_chat.service.ActivityService;
+import com.example.onaffair.online_chat.service.GroupService;
 import com.example.onaffair.online_chat.service.UserService;
 import com.example.onaffair.online_chat.util.Result;
 import jakarta.validation.Valid;
@@ -27,7 +28,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/activity")
 public class ActivityController {
 
-
     @Autowired
     private UserService userService;
 
@@ -37,9 +37,11 @@ public class ActivityController {
     @Autowired
     private ActivityCommentService activityCommentService;
 
+    @Autowired
+    private GroupService groupService;
 
     @PostMapping("/launch")
-    public Result<Activity> launchActivity(@Valid @RequestBody ActivityRequest activityRequest) {
+    public Result<GroupResponse> launchActivity(@Valid @RequestBody ActivityRequest activityRequest) {
 
         SecurityContext context = SecurityContextHolder.getContext();
         String organizer = context.getAuthentication().getName();
@@ -72,14 +74,16 @@ public class ActivityController {
                 setActivityId(activity.getId());
             }};
 
+
             activityService.joinActivity(userParticipation);
 
+            /*  活动发起完成后自动创建群组*/
+            GroupResponse groupResponse = groupService.createGroupByActivity(activity);
 
-            return Result.success(activity);
+            return Result.success(groupResponse);
         }catch (Exception e){
             return Result.error(ResultCode.ERROR,"服务器错误");
         }
-
     }
 
 
@@ -110,10 +114,14 @@ public class ActivityController {
     }
     @GetMapping("/public/activity-list")
     public Result<List<Activity>> getActivityList(@RequestParam(name = "categoryId",defaultValue = "0") Integer categoryId,
-                                               @RequestParam(name = "page",defaultValue = "1") Integer page,
+                                               @RequestParam(name = "page",defaultValue = "1")  Integer page,
                                                @RequestParam(name = "pageSize",defaultValue = "10") Integer pageSize,
                                                @RequestParam(name = "keyword",defaultValue = "")String keyword){
         try {
+
+            if (page < 1 || pageSize < 1){
+                return Result.error(ResultCode.BAD_REQUEST,"页码和页大小必须大于0");
+            }
             List<Activity> res = activityService.getActivityList(categoryId,page,pageSize,keyword);
             return Result.success(res);
         }catch (Exception e){
@@ -157,6 +165,10 @@ public class ActivityController {
             String account = context.getAuthentication().getName();
 
             Activity currentActivity = activityService.getActivityById(id);
+
+            if (activityService.getActivityJoined(account).stream().filter(activity -> activity.getId() == currentActivity.getId()) != null){
+                 return Result.error(ResultCode.BAD_REQUEST,"已报名");
+            }
 
             for (Activity activity : activityService.getActivityJoined(account)) {
                 if (activity.getStatus() == ActivityStatus.ACTIVITY_CANCELLED.getId()) continue;
@@ -268,7 +280,7 @@ public class ActivityController {
         }
     }
 
-    @GetMapping("/top-activity")
+    @GetMapping("/public/top-activity")
     public Result<List<Activity>> getTopActivity(@RequestParam(name="num",defaultValue = "3") Integer num){
         try {
             List<Activity> res = activityService.getTopActivity(num);

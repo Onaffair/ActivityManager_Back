@@ -40,6 +40,12 @@ public class GroupController {
     @PostMapping("/create-group")
     public Result<GroupResponse> createGroup(@RequestBody Activity activity) {
         try {
+
+            GroupResponse groupResponse = groupService.createGroupByActivity(activity);
+            return Result.success(ResultCode.SUCCESS, groupResponse);
+
+            //优化前
+            /*
             Group group = new Group() {{
                 setActivityId(activity.getId());
                 setGroupName(activity.getTitle() + "活动群");
@@ -57,8 +63,8 @@ public class GroupController {
                 }
                 GroupResponse groupResponse = generateGroupResponse(group);
                 return Result.success(ResultCode.SUCCESS, groupResponse);
-            }
-            return Result.error(ResultCode.ERROR, "服务器异常");
+            }*/
+
         } catch (Exception e) {
             return Result.error(ResultCode.ERROR, "服务器异常");
         }
@@ -136,7 +142,7 @@ public class GroupController {
         }
     }
 
-    public GroupResponse generateGroupResponse(Group group) {
+    public  GroupResponse generateGroupResponse(Group group) {
         List<GroupMember> groupMemberList = groupMemberService.getGroupMemberList(group.getGroupId());
         List<UserInfoResponse> members = userService.getUserInfo(groupMemberList.stream().map(GroupMember::getUserAccount).toList());
         List<GroupMessage> groupMessageList = groupMessageService.getGroupMessageList(group.getGroupId());

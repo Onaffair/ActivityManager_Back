@@ -110,7 +110,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         return !path.startsWith("/api/test/")
                 && !path.contains("/public/")
-                && !path.startsWith("/static/avatar/");
+                && !path.startsWith("/static");
     }
 
     // 发送错误响应
@@ -127,5 +127,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             response.getWriter().flush();
         } catch (Exception ignored) {
         }
+
+        return;
     }
 }

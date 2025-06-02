@@ -2,6 +2,7 @@ package com.example.onaffair.online_chat.service;
 
 import com.example.onaffair.online_chat.dto.UserInfoResponse;
 import com.example.onaffair.online_chat.dto.UserLoginRequest;
+import com.example.onaffair.online_chat.dto.WXLoginDTO;
 import com.example.onaffair.online_chat.entity.User;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public interface UserService {
 
     List<User> getAllUsers();
 
+    User userWxLogin(String code, WXLoginDTO userinfo) throws RuntimeException;
 
 
 }

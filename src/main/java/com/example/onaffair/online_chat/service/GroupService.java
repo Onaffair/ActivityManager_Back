@@ -1,5 +1,7 @@
 package com.example.onaffair.online_chat.service;
 
+import com.example.onaffair.online_chat.dto.GroupResponse;
+import com.example.onaffair.online_chat.entity.Activity;
 import com.example.onaffair.online_chat.entity.Group;
 
 import java.util.List;
@@ -19,5 +21,8 @@ public interface GroupService {
     boolean deleteGroup(Integer id);
 
     List<Group> getAllGroups();
+
+    GroupResponse createGroupByActivity(Activity activity) throws Exception;
+
 
 }
