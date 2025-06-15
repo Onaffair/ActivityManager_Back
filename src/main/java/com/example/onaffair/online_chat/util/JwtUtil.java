@@ -58,7 +58,7 @@ public class JwtUtil {
                 .claim("account", userAccount)
                 .claim("role", role) // 添加用户身份信息
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10小时
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 100)) // 100小时
                 .signWith(SECRET_KEY, Jwts.SIG.HS256)
                 .compact();
     }

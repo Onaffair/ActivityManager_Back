@@ -18,7 +18,7 @@ import java.util.List;
 @NoArgsConstructor
 @TableName("ai_chat_log")
 public class AIChatLog {
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.ASSIGN_ID,value = "log_id")
     private String id;
 
     @TableField("session_id")

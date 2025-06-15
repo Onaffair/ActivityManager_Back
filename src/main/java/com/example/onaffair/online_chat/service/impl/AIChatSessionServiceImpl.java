@@ -8,11 +8,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 
 @Service
 public class AIChatSessionServiceImpl implements AIChatSessionService {
+
+    @Autowired
+    private AIChatSessionMapper aiChatSessionMapper;
 
 
     @Override
@@ -23,9 +27,6 @@ public class AIChatSessionServiceImpl implements AIChatSessionService {
         return null;
     }
 
-    @Autowired
-    private AIChatSessionMapper aiChatSessionMapper;
-
     @Override
     public boolean insert(AIChatSession aiChatSession) {
         return aiChatSessionMapper.insert(aiChatSession) > 0;
@@ -35,6 +36,8 @@ public class AIChatSessionServiceImpl implements AIChatSessionService {
     public List<AIChatSession> getAIChatSessionListByUserAccount(String account) {
         QueryWrapper<AIChatSession> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("user_account",account);
-        return aiChatSessionMapper.selectList(queryWrapper);
+        List<AIChatSession> res = aiChatSessionMapper.selectList(queryWrapper);
+        res.sort(Comparator.comparing(AIChatSession::getCreatedAt).reversed());
+        return res;
     }
 }

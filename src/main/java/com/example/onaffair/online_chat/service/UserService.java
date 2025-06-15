@@ -26,5 +26,6 @@ public interface UserService {
 
     User userWxLogin(String code, WXLoginDTO userinfo) throws RuntimeException;
 
+    List<User> getUsersByRole(Integer role);
 
 }

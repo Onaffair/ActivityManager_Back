@@ -105,11 +105,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Boolean updateUser(String account,User user) {
-
+        System.out.println(user);
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
 
         queryWrapper.eq("user_account",account);
-
         int res = userMapper.update(user,queryWrapper);
 
         return res > 0;
@@ -163,5 +162,12 @@ public class UserServiceImpl implements UserService {
                         user.getStatus(),
                         user.getRole()
                 )).toList() ;
+    }
+
+    @Override
+    public List<User> getUsersByRole(Integer role) {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("role", role);
+        return userMapper.selectList(queryWrapper);
     }
 }

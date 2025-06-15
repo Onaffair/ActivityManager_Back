@@ -26,6 +26,8 @@ public class AIChatLogServiceImpl implements AIChatLogService {
         QueryWrapper<AIChatLog> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("session_id",sessionId);
 
-        return aiChatLogMapper.selectList(queryWrapper);
+        List<AIChatLog> res = aiChatLogMapper.selectList(queryWrapper);
+        res.sort((o1, o2) -> o1.getCreatedAt().compareTo(o2.getCreatedAt()));
+        return res;
     }
 }

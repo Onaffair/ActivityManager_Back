@@ -15,8 +15,10 @@ import com.example.onaffair.online_chat.enums.ResultCode;
 import com.example.onaffair.online_chat.util.Result;
 import com.example.onaffair.online_chat.util.STSUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -28,6 +30,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 
+@Slf4j
 @RestController
 @RequestMapping("/api")
 public class CommonController {
@@ -56,6 +59,7 @@ public class CommonController {
 
     private final String ALLOWED_EXTENSIONS = "jpg,jpeg,png,gif,bmp";
 
+
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -80,23 +84,32 @@ public class CommonController {
     }
 
     @GetMapping("/oss/get-sign")
-    public Result<Map<String,Object>> getSign(String fileName){
+    public Result<Map<String,Object>> getSign(@RequestParam(name="ext",required = true) String ext){
 
         try {
-            if (!isValidFileName(fileName)){
+            if (!isValidFileName(ext)){
                 return Result.error(ResultCode.ERROR,"文件名不合法");
             }
+            String fileName = UUID.randomUUID().toString() + "." + ext;
 
             String objectName = IMAGE_DIR + "/" + fileName;
+            if (objectName.startsWith("/")) {
+                objectName = objectName.substring(1);
+            }
+
             OSS ossClient = new OSSClientBuilder().build(endpoint, accessID, accessKey);
 
             GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, objectName);
+
             request.setMethod(HttpMethod.PUT);
             request.setExpiration(new Date(System.currentTimeMillis()+EXPIRED_TIME));
-            request.addHeader("x-oss-object-acl", "public-read");
+            request.setContentType("application/octet-stream");
+
             URL signUrl = ossClient.generatePresignedUrl(request);
 
-            String accessUrl = "https://" + bucket + "." + endpoint.split("//")[1] + "/" + objectName;
+            String accessUrl = "https://" + bucket + "." + endpoint.split("//")[1]  + "/" +  objectName;
+            System.out.println(accessUrl);
+            System.out.println(signUrl);
             Map<String,Object> res = new HashMap<>();
             res.put("signUrl",signUrl);
             res.put("accessUrl",accessUrl);
@@ -107,13 +120,7 @@ public class CommonController {
             return Result.error(ResultCode.ERROR,e.getMessage());
         }
     }
-    private boolean isValidFileName(String fileName) {
-        // 检查路径遍历
-        if (fileName.contains("..") || fileName.contains("/") || fileName.contains("\\")) {
-            return false;
-        }
-        // 检查文件扩展名
-        String ext = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
+    private boolean isValidFileName(String ext) {
         return Arrays.asList(ALLOWED_EXTENSIONS.split(",")).contains(ext);
     }
 }

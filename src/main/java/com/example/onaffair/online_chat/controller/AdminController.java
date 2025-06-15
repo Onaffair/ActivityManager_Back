@@ -1,10 +1,16 @@
 package com.example.onaffair.online_chat.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.onaffair.online_chat.dto.GroupResponse;
+import com.example.onaffair.online_chat.dto.ReportHandleDTO;
 import com.example.onaffair.online_chat.dto.UserInfoResponse;
 import com.example.onaffair.online_chat.entity.*;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.example.onaffair.online_chat.enums.ResultCode;
 import com.example.onaffair.online_chat.service.*;
+import com.example.onaffair.online_chat.entity.RepairRequest;
+import com.example.onaffair.online_chat.entity.ServiceReview;
+import com.example.onaffair.online_chat.entity.User;
 
 import com.example.onaffair.online_chat.util.Result;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +52,15 @@ public class AdminController {
     @Autowired
     private ActivityCommentService activityCommentService;
 
+    @Autowired
+    private ActivityReportService activityReportService;
+    
+    @Autowired
+    private RepairRequestService repairRequestService;
+    
+    @Autowired
+    private ServiceReviewService serviceReviewService;
+
     @GetMapping("/test")
     public String test(){
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -58,7 +73,7 @@ public class AdminController {
         return userService.getAllUsers();
     }
     @PostMapping("/updateUser")
-    private Boolean updateUser(@RequestBody  User user){
+    public Boolean updateUser(@RequestBody  User user){
         return userService.updateUser(user.getAccount(),user);
     }
 
@@ -170,6 +185,168 @@ public class AdminController {
 
             return Result.success(true);
         } catch (Exception e) {
+            return Result.error(ResultCode.ERROR, e.getMessage());
+        }
+    }
+
+    /**
+     * 获取举报列表（管理员功能）
+     * @param current 当前页
+     * @param size 每页大小
+     * @param status 举报状态（可选）
+     * @return 举报列表
+     */
+    @GetMapping("/report/list")
+    public Result<IPage<ActivityReport>> getReportList(
+            @RequestParam(defaultValue = "1") Integer current,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) String status) {
+        try {
+            Page<ActivityReport> page = new Page<>(current, size);
+            IPage<ActivityReport> reportList = activityReportService.getReportList( page,status);
+            return Result.success(reportList);
+        } catch (Exception e) {
+            log.error("获取举报列表失败", e);
+            return Result.error(ResultCode.ERROR, e.getMessage());
+        }
+    }
+
+    /**
+     * 获取举报详情（管理员功能）
+     * @param reportId 举报ID
+     * @return 举报详情
+     */
+    @GetMapping("/report/detail/{reportId}")
+    public Result<ActivityReport> getReportDetail(@PathVariable Integer reportId) {
+        try {
+            ActivityReport reportDetail = activityReportService.getReportDetail(Long.valueOf(reportId));
+            if (reportDetail == null) {
+                return Result.error(ResultCode.ERROR, "举报记录不存在");
+            }
+            return Result.success(reportDetail);
+        } catch (Exception e) {
+            log.error("获取举报详情失败", e);
+            return Result.error(ResultCode.ERROR, e.getMessage());
+        }
+    }
+
+    /**
+     * 处理举报（管理员功能）
+     * @param handleReportDTO 处理举报请求
+     * @return 处理结果
+     */
+    @PostMapping("/report/handle")
+    public Result<Boolean> handleReport(@RequestBody ReportHandleDTO handleReportDTO) {
+        try {
+            boolean result = activityReportService.handleReport(handleReportDTO);
+            if (result) {
+                return Result.success(true);
+            } else {
+                return Result.error(ResultCode.ERROR, "处理举报失败");
+            }
+        } catch (Exception e) {
+            log.error("处理举报失败", e);
+            return Result.error(ResultCode.ERROR, e.getMessage());
+        }
+    }
+
+    /**
+     * 获取所有维修请求（管理员功能）
+     * @param current 当前页
+     * @param size 每页大小
+     * @param status 请求状态（可选）
+     * @return 维修请求列表
+     */
+    @GetMapping("/repair/list")
+    public Result<IPage<RepairRequest>> getAllRepairRequests(
+            @RequestParam(defaultValue = "1") Integer current,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) String status) {
+        try {
+            Page<RepairRequest> page = new Page<>(current, size);
+            IPage<RepairRequest> repairList = repairRequestService.getAllRepairRequests(page, status);
+            return Result.success(repairList);
+        } catch (Exception e) {
+            log.error("获取维修请求列表失败", e);
+            return Result.error(ResultCode.ERROR, e.getMessage());
+        }
+    }
+
+    /**
+     * 分配维修任务给维修员（管理员功能）
+     * @param requestId 维修请求ID
+     * @param technicianAccount 维修员账号
+     * @return 分配结果
+     */
+    @PostMapping("/repair/assign")
+     public Result<Boolean> assignRepairTask(@RequestBody java.util.Map<String, Object> request) {
+         Long requestId = Long.valueOf(request.get("requestId").toString());
+         String technicianAccount = request.get("technicianAccount").toString();
+        try {
+            boolean result = repairRequestService.assignRepairTask(requestId, technicianAccount);
+            if (result) {
+                return Result.success(true);
+            } else {
+                return Result.error(ResultCode.ERROR, "分配维修任务失败");
+            }
+        } catch (Exception e) {
+            log.error("分配维修任务失败", e);
+            return Result.error(ResultCode.ERROR, e.getMessage());
+        }
+    }
+
+    /**
+     * 拒绝维修请求（管理员功能）
+     * @param requestId 维修请求ID
+     * @return 拒绝结果
+     */
+    @PostMapping("/repair/reject")
+     public Result<Boolean> rejectRepairRequest(@RequestBody java.util.Map<String, Object> request) {
+         Long requestId = Long.valueOf(request.get("requestId").toString());
+        try {
+            boolean result = repairRequestService.rejectRepairRequest(requestId);
+            if (result) {
+                return Result.success(true);
+            } else {
+                return Result.error(ResultCode.ERROR, "拒绝维修请求失败");
+            }
+        } catch (Exception e) {
+            log.error("拒绝维修请求失败", e);
+            return Result.error(ResultCode.ERROR, e.getMessage());
+        }
+    }
+
+    /**
+     * 获取所有维修员列表（管理员功能）
+     * @return 维修员列表
+     */
+    @GetMapping("/repair/technicians")
+    public Result<List<User>> getAllTechnicians() {
+        try {
+            List<User> technicians = userService.getUsersByRole(2); // role=2表示维修员
+            return Result.success(technicians);
+        } catch (Exception e) {
+            log.error("获取维修员列表失败", e);
+            return Result.error(ResultCode.ERROR, e.getMessage());
+        }
+    }
+
+    /**
+     * 获取服务评价列表（管理员功能）
+     * @param current 当前页
+     * @param size 每页大小
+     * @return 评价列表
+     */
+    @GetMapping("/repair/reviews")
+    public Result<IPage<ServiceReview>> getServiceReviews(
+            @RequestParam(defaultValue = "1") Integer current,
+            @RequestParam(defaultValue = "10") Integer size) {
+        try {
+            Page<ServiceReview> page = new Page<>(current, size);
+            IPage<ServiceReview> reviews = serviceReviewService.getAllReviews(page);
+            return Result.success(reviews);
+        } catch (Exception e) {
+            log.error("获取服务评价列表失败", e);
             return Result.error(ResultCode.ERROR, e.getMessage());
         }
     }

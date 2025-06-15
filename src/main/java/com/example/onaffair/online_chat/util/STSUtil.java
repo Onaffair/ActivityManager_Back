@@ -32,19 +32,14 @@ public class STSUtil {
                 "    {\n" +
                 "      \"Effect\": \"Allow\", \n" +
                 "      \"Action\": [\n" +
-                "        \"oss:PutObject\",\n" +
-                "        \"oss:GetObject\",\n" +
-                "        \"oss:DeleteObject\"\n" +
+                "        \"oss:PutObject\"\n" +
                 "      ], \n" +
                 "      \"Resource\": [\n" +
-                "        \"acs:oss:*:*:onaffair/images/*\",\n" +
-                "        \"acs:oss:*:*:onaffair\"\n" +
+                "        \"acs:oss:*:*:onaffair/images/*.jpg\",\n" +
+                "        \"acs:oss:*:*:onaffair/images/*.jpeg\",\n" +
+                "        \"acs:oss:*:*:onaffair/images/*.png\",\n" +
+                "        \"acs:oss:*:*:onaffair/images/*.gif\"\n" +
                 "      ]\n" +
-                "    },\n" +
-                "    {\n" +
-                "      \"Effect\": \"Allow\",\n" +
-                "      \"Action\": [\"oss:ListBuckets\"],\n" +
-                "      \"Resource\": [\"acs:oss:*:*:*\"]\n" +
                 "    }\n" +
                 "  ]\n" +
                 "}";

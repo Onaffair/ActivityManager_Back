@@ -166,8 +166,9 @@ public class ActivityController {
 
             Activity currentActivity = activityService.getActivityById(id);
 
-            if (activityService.getActivityJoined(account).stream().filter(activity -> activity.getId() == currentActivity.getId()) != null){
-                 return Result.error(ResultCode.BAD_REQUEST,"已报名");
+            List<Activity> activityJoined = activityService.getActivityJoined(account);
+            if (!activityJoined.isEmpty() && activityJoined.contains(currentActivity)){
+                return Result.error(ResultCode.BAD_REQUEST,"已报名");
             }
 
             for (Activity activity : activityService.getActivityJoined(account)) {

@@ -28,6 +28,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.Executor;
@@ -71,36 +72,38 @@ public class AIController {
                 produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chat(@Validated @RequestBody AIChatRequest request){
 
-
         String account = SecurityContextHolder.getContext().getAuthentication().getName();
         Activity activity = activityService.getActivityById(request.getActivityId());
         String content = request.getContent();
         List<AIChatLog.ImageInfo> imageInfo = request.getImageInfo();
 
-
-        /*AIChatSession session = null;
+        AIChatSession session = null;
 
         if (request.getSessionId() == null){
             session = new AIChatSession(){{
                 setActivityId(request.getActivityId());
-                setTitle("活动"+activity.getTitle()+"的会话");
+                String title = content;
+                setTitle(title);
                 setUserAccount(account);
             }};
-
             aiChatSessionService.insert(session);
         }else{
             session = aiChatSessionService.getAIChatSessionById(request.getSessionId());
         }
 
+
         String sessionId = session.getId();
         AIChatLog userLog = new AIChatLog(){{
             setSessionId(sessionId);
-            setContent(text);
+            setContent(content);
             setImageInfo(imageInfo);
             setRole("user");
             setParentId(null);
-        }};*/
+        }};
 
+        aiChatLogService.insert(userLog);
+
+        List<AIChatLog> aiChatHistory = aiChatLogService.getAIChatLogListBySessionId(sessionId);
 
         SseEmitter emitter = new SseEmitter(5*60*1000L);
         emitter.onTimeout(() ->{
@@ -120,17 +123,10 @@ public class AIController {
                 //消息
                 List<Map<String,Object>> messages = new ArrayList<>();
 
-
-                // 图片信息
-                List<String> b64Images = new ArrayList<>();
-                //用户上传的图片
-                imageInfo.forEach(img ->{
-                    b64Images.add(img.toString());
-                });
-                if (b64Images.size() > 0){
-                    messages.add(Map.of("role","user","content",IMG_PROMPT+b64Images.toString()));
+                //用户上传的图片信息
+                if (!imageInfo.isEmpty()){
+                    messages.add(Map.of("role","user","content",IMG_PROMPT+imageInfo.toString()));
                 }
-
                 //活动信息
                 StringBuilder activityInfo = new StringBuilder();
                 activityInfo.append(
@@ -149,11 +145,12 @@ public class AIController {
                         ));
                 messages.add(Map.of("role", "system", "content", activityInfo.toString()));
 
-                // 提示词与角色
-                messages.add(Map.of("role","user","content",content));
+                // 聊天历史
+                aiChatHistory.forEach(item ->{
+                    messages.add(Map.of("role",item.getRole(),"content",item.getContent()));
+                });
 
                 body.put("messages",messages);
-
                 //请求构建与发送
                 String jsonBody = objectMapper.writeValueAsString(body);
                 HttpClient httpClient = HttpClient.newBuilder()
@@ -173,14 +170,23 @@ public class AIController {
                 );
 
                 //发送信息
-                sendMessage(emitter,response);
+                String aiMessage = sendMessage(emitter, response);
+
+                AIChatLog systemLog = new AIChatLog() {{
+                    setContent(aiMessage);
+                    setSessionId(sessionId);
+                    setRole("system");
+                    setParentId(userLog.getId());
+                }};
+                aiChatLogService.insert(systemLog);
+
                 emitter.complete();
             }catch (Exception ex){
                 emitter.completeWithError(ex);
             }finally {
+
             }
         });
-
         return emitter;
     }
 
@@ -215,7 +221,7 @@ public class AIController {
                         request,
                         HttpResponse.BodyHandlers.ofInputStream()
                 );
-                System.out.println("本次请求状态码"+response.statusCode());
+//                System.out.println("本次请求状态码"+response.statusCode());
                 sendMessage(emitter,response);
                 emitter.complete();
 
@@ -226,7 +232,7 @@ public class AIController {
         });
         return emitter;
     }
-    private void sendMessage( SseEmitter emitter,HttpResponse<InputStream> response) throws IOException{
+    private String sendMessage( SseEmitter emitter,HttpResponse<InputStream> response) throws IOException, SQLException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(response.body(), StandardCharsets.UTF_8));
         String line;
         String msg = "";
@@ -250,10 +256,11 @@ public class AIController {
                     emitter.send(Map.of("content",contentNode.asText(),"done",false));
                 }
             }else{
-                System.out.println(line);
+//                System.out.println(line);
             }
         }
-        System.out.println(msg);
+        //返回AI回复的信息
+        return msg;
     }
     private Map<String,Object> buildQwenRequestBody(String imageUrl) throws IOException {
         Map<String,Object> body = new HashMap<>();

@@ -513,11 +513,10 @@ public class UserController {
     }
 
     @GetMapping("/my-session")
-    public Result<List<AIChatSession> > getAIChatHistory() {
+    public Result<List<AIChatSession> > getAISessionHistory() {
         try {
-            List<AIChatSession> res ;
             String account = SecurityContextHolder.getContext().getAuthentication().getName();
-            res = aiChatSessionService.getAIChatSessionListByUserAccount(account);
+            List<AIChatSession> res = aiChatSessionService.getAIChatSessionListByUserAccount(account);
             return Result.success(res);
         }catch (Exception e){
             return Result.error(ResultCode.ERROR,e.getMessage());
@@ -525,7 +524,7 @@ public class UserController {
     }
 
     @GetMapping("/session-chat-history")
-    public Result<List<AIChatLog>> getAIChatHistory(@RequestParam("sessionId") String sessionId) {
+    public Result<List<AIChatLog>> getSessionChatHistory(@RequestParam("sessionId") String sessionId) {
         try {
             List<AIChatLog> res = aiChatLogService.getAIChatLogListBySessionId(sessionId);
             return Result.success(res);

@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @TableName("ai_chat_session")
 public class AIChatSession {
 
-    @TableId(type = IdType.ASSIGN_UUID)
+    @TableId(type = IdType.ASSIGN_UUID, value = "session_id")
     private String id;
 
     @TableField("user_account")
