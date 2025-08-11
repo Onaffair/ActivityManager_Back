@@ -3,6 +3,8 @@ package com.example.onaffair.online_chat.controller;
 
 import com.example.onaffair.online_chat.dto.*;
 import com.example.onaffair.online_chat.entity.*;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.example.onaffair.online_chat.service.*;
 import com.example.onaffair.online_chat.util.ChannelManager;
 import com.example.onaffair.online_chat.util.JwtUtil;
@@ -53,6 +55,9 @@ public class UserController {
 
     @Autowired
     private AIChatLogService aiChatLogService;
+    
+    @Autowired
+    private AnnouncementService announcementService;
 
 
     @PostMapping("/public/login")
@@ -530,6 +535,45 @@ public class UserController {
             return Result.success(res);
         }catch (Exception e){
             return Result.error(ResultCode.ERROR,e.getMessage());
+        }
+    }
+    
+    // ==================== 公告相关接口 ====================
+    
+    /**
+     * 用户分页获取公告列表
+     * @param current 当前页
+     * @param size 每页大小
+     * @return 公告列表
+     */
+    @GetMapping("/announcements")
+    public Result<IPage<Announcement>> getAnnouncements(
+            @RequestParam(defaultValue = "1") Integer current,
+            @RequestParam(defaultValue = "10") Integer size) {
+        try {
+            Page<Announcement> page = new Page<>(current, size);
+            IPage<Announcement> announcements = announcementService.getAnnouncementsForUser(page);
+            return Result.success(announcements);
+        } catch (Exception e) {
+            return Result.error(ResultCode.ERROR, e.getMessage());
+        }
+    }
+    
+    /**
+     * 用户获取公告详情
+     * @param announcementId 公告ID
+     * @return 公告详情
+     */
+    @GetMapping("/announcements/{announcementId}")
+    public Result<Announcement> getAnnouncementDetail(@PathVariable String announcementId) {
+        try {
+            Announcement announcement = announcementService.getAnnouncementById(announcementId);
+            if (announcement == null) {
+                return Result.error(ResultCode.ERROR, "公告不存在");
+            }
+            return Result.success(announcement);
+        } catch (Exception e) {
+            return Result.error(ResultCode.ERROR, e.getMessage());
         }
     }
 }

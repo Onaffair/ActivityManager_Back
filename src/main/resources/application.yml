@@ -51,4 +51,5 @@ oss:
 
 server:
     port: 721
+    address: 0.0.0.0
 

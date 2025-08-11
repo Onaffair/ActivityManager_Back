@@ -18,6 +18,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -41,7 +42,7 @@ public class ActivityController {
     private GroupService groupService;
 
     @PostMapping("/launch")
-    public Result<GroupResponse> launchActivity(@Valid @RequestBody ActivityRequest activityRequest) {
+    public Result<String> launchActivity(@Valid @RequestBody ActivityRequest activityRequest) {
 
         SecurityContext context = SecurityContextHolder.getContext();
         String organizer = context.getAuthentication().getName();
@@ -63,24 +64,14 @@ public class ActivityController {
                 setEndTime(activityRequest.getEndTime());
                 setLeastJoinNum(activityRequest.getLeastJoinNum());
                 setMostJoinNum(activityRequest.getMostJoinNum());
+                setStatus(ActivityStatus.TO_BE_AUDITED.getId()); // 设置为待审核状态
                 setCreatedAt(LocalDateTime.now());
                 setUpdatedAt(LocalDateTime.now());
             }};
 
             activityService.createActivity(activity);
 
-            UserParticipation userParticipation = new UserParticipation() {{
-                setUserAccount(organizer);
-                setActivityId(activity.getId());
-            }};
-
-
-            activityService.joinActivity(userParticipation);
-
-            /*  活动发起完成后自动创建群组*/
-            GroupResponse groupResponse = groupService.createGroupByActivity(activity);
-
-            return Result.success(groupResponse);
+            return Result.success("活动提交成功，等待管理员审核");
         }catch (Exception e){
             return Result.error(ResultCode.ERROR,"服务器错误");
         }
@@ -117,13 +108,13 @@ public class ActivityController {
                                                @RequestParam(name = "page",defaultValue = "1")  Integer page,
                                                @RequestParam(name = "pageSize",defaultValue = "10") Integer pageSize,
                                                @RequestParam(name = "keyword",defaultValue = "")String keyword){
-        try {
 
-            if (page < 1 || pageSize < 1){
-                return Result.error(ResultCode.BAD_REQUEST,"页码和页大小必须大于0");
-            }
-            List<Activity> res = activityService.getActivityList(categoryId,page,pageSize,keyword);
-            return Result.success(res);
+        if (page < 1 || pageSize < 1){
+            return Result.error(ResultCode.BAD_REQUEST,"页码和页大小必须大于0");
+        }
+        try {
+            List<Activity> allActivities = activityService.getActivityList(categoryId,page,pageSize,keyword);
+            return Result.success(allActivities);
         }catch (Exception e){
             return Result.error(ResultCode.ERROR,"服务器错误");
         }
@@ -159,6 +150,7 @@ public class ActivityController {
     }
 
     @PostMapping("/activity-join")
+    @Transactional(rollbackFor = Exception.class)
     public Result<Integer> ActivityJoin(@RequestBody Integer id){
         try {
             SecurityContext context = SecurityContextHolder.getContext();
@@ -183,6 +175,8 @@ public class ActivityController {
                 setUserAccount(account);
             }};
             if (activityService.joinActivity(userParticipation)){
+                currentActivity.setJoinNum(currentActivity.getJoinNum() + 1);
+                activityService.updateActivity(currentActivity);
                 return Result.success(userParticipation.getActivityId());
             }
             return Result.error(ResultCode.BAD_REQUEST,"活动报名失败");

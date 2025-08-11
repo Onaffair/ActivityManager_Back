@@ -8,9 +8,11 @@ import com.example.onaffair.online_chat.entity.*;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.example.onaffair.online_chat.enums.ResultCode;
 import com.example.onaffair.online_chat.service.*;
+import com.example.onaffair.online_chat.service.AnnouncementService;
 import com.example.onaffair.online_chat.entity.RepairRequest;
 import com.example.onaffair.online_chat.entity.ServiceReview;
 import com.example.onaffair.online_chat.entity.User;
+import com.example.onaffair.online_chat.entity.Announcement;
 
 import com.example.onaffair.online_chat.util.Result;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +59,9 @@ public class AdminController {
     
     @Autowired
     private RepairRequestService repairRequestService;
+    
+    @Autowired
+    private AnnouncementService announcementService;
     
     @Autowired
     private ServiceReviewService serviceReviewService;
@@ -350,5 +355,139 @@ public class AdminController {
             return Result.error(ResultCode.ERROR, e.getMessage());
         }
     }
-
+    
+    // ==================== 公告管理相关接口 ====================
+    
+    /**
+     * 管理员获取所有公告
+     * @return 公告列表
+     */
+    @GetMapping("/announcements")
+    public Result<List<Announcement>> getAllAnnouncements() {
+        try {
+            List<Announcement> announcements = announcementService.getAllAnnouncements();
+            return Result.success(announcements);
+        } catch (Exception e) {
+            log.error("获取公告列表失败", e);
+            return Result.error(ResultCode.ERROR, e.getMessage());
+        }
+    }
+    
+    /**
+     * 管理员创建公告
+     * @param announcement 公告信息
+     * @return 创建结果
+     */
+    @PostMapping("/announcements")
+    public Result<Announcement> createAnnouncement(@RequestBody Announcement announcement) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String adminAccount = authentication.getName();
+            
+            Announcement createdAnnouncement = announcementService.createAnnouncement(announcement, adminAccount);
+            return Result.success(createdAnnouncement);
+        } catch (Exception e) {
+            log.error("创建公告失败", e);
+            return Result.error(ResultCode.ERROR, e.getMessage());
+        }
+    }
+    
+    /**
+     * 管理员更新公告
+     * @param announcementId 公告ID
+     * @param announcement 公告信息
+     * @return 更新结果
+     */
+    @PutMapping("/announcements/{announcementId}")
+    public Result<Announcement> updateAnnouncement(
+            @PathVariable String announcementId,
+            @RequestBody Announcement announcement) {
+        try {
+            announcement.setAnnouncementId(announcementId);
+            Announcement updatedAnnouncement = announcementService.updateAnnouncement(announcement);
+            return Result.success(updatedAnnouncement);
+        } catch (Exception e) {
+            log.error("更新公告失败", e);
+            return Result.error(ResultCode.ERROR, e.getMessage());
+        }
+    }
+    
+    /**
+     * 管理员删除公告
+     * @param announcementId 公告ID
+     * @return 删除结果
+     */
+    @DeleteMapping("/announcements/{announcementId}")
+    public Result<Boolean> deleteAnnouncement(@PathVariable String announcementId) {
+        try {
+            boolean deleted = announcementService.deleteAnnouncement(announcementId);
+            return Result.success(deleted);
+        } catch (Exception e) {
+            log.error("删除公告失败", e);
+            return Result.error(ResultCode.ERROR, e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取待审核的活动列表
+     * @param page 页码
+     * @param pageSize 页大小
+     * @return 待审核活动列表
+     */
+    @GetMapping("/activities/pending")
+    public Result<IPage<Activity>> getPendingActivities(
+            @RequestParam(name = "page", defaultValue = "1") Integer page,
+            @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
+        try {
+            if (page < 1 || pageSize < 1) {
+                return Result.error(ResultCode.BAD_REQUEST, "页码和页大小必须大于0");
+            }
+            IPage<Activity> pendingActivities = activityService.getPendingActivities(page, pageSize);
+            return Result.success(pendingActivities);
+        } catch (Exception e) {
+            log.error("获取待审核活动失败", e);
+            return Result.error(ResultCode.ERROR, "服务器错误");
+        }
+    }
+    
+    /**
+     * 审核通过活动
+     * @param activityId 活动ID
+     * @return 审核结果
+     */
+    @PostMapping("/activities/{activityId}/approve")
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> approveActivity(@PathVariable Integer activityId) {
+        try {
+            boolean success = activityService.approveActivity(activityId);
+            if (success) {
+                return Result.success("活动审核通过");
+            } else {
+                return Result.error(ResultCode.BAD_REQUEST, "活动审核失败");
+            }
+        } catch (Exception e) {
+            log.error("活动审核通过失败", e);
+            return Result.error(ResultCode.ERROR, "服务器错误");
+        }
+    }
+    
+    /**
+     * 审核拒绝活动
+     * @param activityId 活动ID
+     * @return 审核结果
+     */
+    @PostMapping("/activities/{activityId}/reject")
+    public Result<String> rejectActivity(@PathVariable Integer activityId) {
+        try {
+            boolean success = activityService.rejectActivity(activityId);
+            if (success) {
+                return Result.success("活动审核拒绝");
+            } else {
+                return Result.error(ResultCode.BAD_REQUEST, "活动审核失败");
+            }
+        } catch (Exception e) {
+            log.error("活动审核拒绝失败", e);
+            return Result.error(ResultCode.ERROR, "服务器错误");
+        }
+    }
 }

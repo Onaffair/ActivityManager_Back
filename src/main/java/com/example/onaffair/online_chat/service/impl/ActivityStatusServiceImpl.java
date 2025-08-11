@@ -20,6 +20,7 @@ public class ActivityStatusServiceImpl implements ActivityStatusService {
 
     @Override
     public void updateActivityStatus() {
+
         List<Activity> activities = activityMapper.selectList(null);
 
         LocalDateTime now = LocalDateTime.now();
@@ -34,6 +35,11 @@ public class ActivityStatusServiceImpl implements ActivityStatusService {
     }
 
     private int calculateStatus(Activity activity, LocalDateTime now) {
+
+        if (activity.getStatus() == ActivityStatus.TO_BE_AUDITED.getId() || activity.getStatus() == ActivityStatus.REJECTED.getId()){
+            return activity.getStatus();
+        }
+
         // 已取消的活动不再更新
         if (activity.getStatus() == ActivityStatus.ACTIVITY_CANCELLED.getId()) {
             return activity.getStatus();

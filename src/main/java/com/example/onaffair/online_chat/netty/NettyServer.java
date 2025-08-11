@@ -17,7 +17,7 @@ public class NettyServer {
 
     private final int port;
 
-    public static final String IP = "10.239.148.35";
+    public static final String IP = "0.0.0.0";
     public static final String WEBSOCKET_PATH = "/ws";
 
     private EventLoopGroup bossGroup, workerGroup;

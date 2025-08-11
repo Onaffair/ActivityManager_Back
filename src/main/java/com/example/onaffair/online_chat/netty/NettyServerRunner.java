@@ -27,8 +27,6 @@ public class NettyServerRunner implements DisposableBean {
     @PostConstruct
     public void startServer(){
         nettyServer = new NettyServer(9000, subprotocolTokenHandler, webSocketChatServerHandler);
-
-
         try {
             nettyServer.start();
         } catch (Exception e) {

@@ -5,6 +5,8 @@ import lombok.Getter;
 
 @Getter
 public enum ActivityStatus {
+    REJECTED(-1, "被拒绝"),
+    TO_BE_AUDITED(0, "待审核"),
     WAITING_FOR_REGISTRATION(1, "等待报名"),
     REGISTRATION_OPEN(2, "报名中"),
     REGISTRATION_FULL(3, "报名人数已满"),

@@ -1,0 +1,456 @@
+create table activity_report
+(
+    report_id       bigint auto_increment comment '举报ID'
+        primary key,
+    activity_id     int                                                                                 not null comment '被举报活动ID',
+    reporter        varchar(255)                                                                        not null comment '举报人账号',
+    report_type     enum ('illegal_content', 'false_information', 'fraud', 'inappropriate', 'other')    not null comment '举报类型',
+    description     text                                                                                not null comment '举报描述',
+    evidence_images json                                                                                null comment '证据图片(最多5张)',
+    report_status   enum ('pending', 'processing', 'resolved', 'rejected') default 'pending'            not null comment '处理状态',
+    handler_account varchar(255)                                                                        null comment '处理管理员账号',
+    handle_action   enum ('accept', 'reject', 'activity_removed', 'warning_sent', 'user_banned')        null comment '处理措施',
+    handle_comment  text                                                                                null comment '处理意见',
+    created_at      datetime(3)                                            default CURRENT_TIMESTAMP(3) not null comment '举报时间',
+    handled_at      datetime(3)                                                                         null comment '处理时间',
+    constraint chk_description_length
+        check (char_length(`description`) >= 10),
+    constraint chk_evidence_limit
+        check (json_length(`evidence_images`) <= 5),
+    constraint chk_handle_info
+        check (((`report_status` in (_utf8mb4\'resolved\',_utf8mb4\'rejected\')) and (`handler_account` is not null) and (`handle_action` is not null)) or (`report_status` not in (_utf8mb4\'resolved\',_utf8mb4\'rejected\')))
+)
+comment '活动举报记录表';
+
+create index idx_activity_report
+    on activity_report (activity_id, created_at);
+
+create index idx_handler
+    on activity_report (handler_account);
+
+create index idx_report_status
+    on activity_report (report_status);
+
+create index idx_report_time
+    on activity_report (created_at);
+
+create index idx_reporter
+    on activity_report (reporter);
+
+create table ai_chat_log
+(
+    log_id     bigint unsigned auto_increment comment '消息ID（分布式雪花算法）'
+        primary key,
+    session_id varchar(64)                              not null comment '关联会话ID',
+    parent_id  bigint unsigned                          null comment '父消息ID（树形结构）',
+    role       enum ('user', 'assistant', 'system')     not null comment '消息角色',
+    content    mediumtext                               not null comment '消息内容（用户提问文本/AI响应Markdown）',
+    image_info json                                     null comment '图片信息数组（仅user角色可用）',
+    created_at datetime(3) default CURRENT_TIMESTAMP(3) not null comment '精确到毫秒',
+    constraint chk_content_not_empty
+        check (char_length(`content`) > 0),
+    constraint chk_image_limit
+        check ((`role` <> _utf8mb4\'user\') or (json_length(`image_info`) <= 5))
+)
+comment '统一消息存储的AI对话记录表';
+
+create index idx_message_chain
+    on ai_chat_log (parent_id, role);
+
+create index idx_session_flow
+    on ai_chat_log (session_id, created_at);
+
+create table ai_chat_session
+(
+    session_id    varchar(64)                               not null comment '会话ID（UUIDv4格式）'
+        primary key,
+    user_account  varchar(255)                              not null comment '用户账号（关联用户表）',
+    activity_id   int                                       null comment '活动ID（关联活动表，NULL表示通用对话）',
+    title         varchar(120)                              not null comment '对话主题（前端自动生成+用户可编辑）',
+    message_count int unsigned default '0'                  not null comment '总消息数（含用户和AI消息）',
+    created_at    datetime(3)  default CURRENT_TIMESTAMP(3) not null comment '创建时间（毫秒精度）',
+    updated_at    datetime(3)  default CURRENT_TIMESTAMP(3) not null on update CURRENT_TIMESTAMP(3) comment '最后更新时间'
+)
+    comment 'AI对话会话元数据表' collate = utf8mb4_unicode_ci;
+
+create index idx_activity
+    on ai_chat_session (activity_id);
+
+create index idx_user_active
+    on ai_chat_session (user_account);
+
+create table repair_request
+(
+    request_id          bigint auto_increment
+        primary key,
+    user_account        varchar(255)                                                                                      not null comment '用户账号',
+    appliance_type      varchar(100)                                                                                      not null comment '家电类型（如冰箱、洗衣机等）',
+    appliance_model     varchar(100)                                                                                      not null comment '家电型号',
+    problem_description text                                                                                              not null comment '问题描述',
+    evidence_images     json                                                                                              null comment '证据图片（最多5张）',
+    request_status      enum ('pending', 'assigned', 'in_progress', 'completed', 'rejected') default 'pending'            not null comment '处理状态',
+    technician_account  varchar(255)                                                                                      null comment '分配的维修员账号',
+    created_at          datetime(3)                                                          default CURRENT_TIMESTAMP(3) not null comment '提交时间',
+    assigned_at         datetime(3)                                                                                       null comment '分配时间',
+    completed_at        datetime(3)                                                                                       null comment '完成时间',
+    constraint chk_description_length_repair
+        check (char_length(`problem_description`) >= 10),
+    constraint chk_evidence_limit_repair
+        check (json_length(`evidence_images`) <= 5)
+)
+    comment '家电报修请求表';
+
+create table service_review
+(
+    review_id   bigint auto_increment
+        primary key,
+    request_id  bigint                                     not null comment '关联的报修请求ID',
+    rating      decimal(3, 1) default 0.0                  not null comment '评分（0.0-5.0）',
+    review_text text                                       null comment '评价内容',
+    image_url   varchar(512)                               null comment '评价配图（单张）',
+    created_at  datetime(3)   default CURRENT_TIMESTAMP(3) not null comment '评价时间',
+    constraint chk_review_content
+        check ((`review_text` is not null) or (`image_url` is not null))
+)
+    comment '家电维修评价表';
+
+create table user_table
+(
+    user_name     varchar(255)                       not null comment '用户名',
+    user_account  varchar(255)                       not null comment '账号'
+        primary key,
+    user_password varchar(255)                       not null comment '密码',
+    user_email    varchar(255)                       null comment '邮箱',
+    avatar        varchar(255)                       null comment '头像链接',
+    status        varchar(50)                        null comment '在线状态',
+    user_phone    varchar(20)                        null comment '手机号',
+    role          tinyint  default 0                 not null comment '用户身份（0: 普通用户, 1: 管理员, 2: 维修员）',
+    created_at    datetime default CURRENT_TIMESTAMP null comment '创建时间'
+)
+    comment '用户表';
+
+create table activity
+(
+    id             int auto_increment comment '主键ID'
+        primary key,
+    title          varchar(32)                             not null comment '活动标题',
+    category_id    int                                     not null comment '分类ID',
+    highlight      varchar(150)                            not null comment '活动亮点',
+    content        text                                    not null comment '活动内容',
+    images         json                                    not null comment '图片列表',
+    city_id        int                                     not null comment '城市ID',
+    address        varchar(100)                            not null comment '详细地址',
+    begin_time     datetime                                not null comment '开始时间',
+    end_time       datetime                                not null comment '结束时间',
+    least_join_num int                                     not null comment '最少参与人数',
+    most_join_num  int                                     not null comment '最多参与人数',
+    created_at     datetime      default CURRENT_TIMESTAMP null comment '创建时间',
+    updated_at     datetime      default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP comment '更新时间',
+    organizer      varchar(255)                            not null comment '发起人账号',
+    status         int           default 1                 null,
+    join_num       int                                     null,
+    collect_num    int                                     null,
+    rating         decimal(3, 1) default 0.0               not null comment '活动评分',
+    constraint fk_activity_organizer
+        foreign key (organizer) references user_table (user_account),
+    constraint chk_participants
+        check (`most_join_num` > `least_join_num`),
+    constraint chk_time
+        check (`end_time` > `begin_time`)
+)
+    comment '活动信息表';
+
+create index idx_category
+    on activity (category_id);
+
+create index idx_city
+    on activity (city_id);
+
+create index idx_time_range
+    on activity (begin_time, end_time);
+
+create table activity_comment
+(
+    comment_id   bigint auto_increment comment '评论ID'
+        primary key,
+    activity_id  int                                not null comment '活动ID',
+    user_id      varchar(255)                       not null comment '用户ID',
+    text_content text                               null comment '评论内容',
+    image_url    varchar(512)                       null comment '图片链接（单张）',
+    rating       float                              null comment '评分（0.0-5.0）',
+    reply_hint   bigint                             null comment '评论引用提示',
+    created_at   datetime default CURRENT_TIMESTAMP null comment '评论时间',
+    reply_text   text                               null,
+    constraint activity_comment___comment
+        foreign key (reply_hint) references activity_comment (comment_id),
+    constraint fk_comment_activity
+        foreign key (activity_id) references activity (id),
+    constraint fk_comment_user
+        foreign key (user_id) references user_table (user_account),
+    constraint chk_text_content_not_null
+        check ((`text_content` is not null) or (`image_url` is not null))
+)
+    comment '活动评论表';
+
+create index idx_activity_comment_time
+    on activity_comment (created_at);
+
+create index idx_activity_user
+    on activity_comment (activity_id, user_id);
+
+create definer = root@localhost trigger after_comment_insert
+    after insert
+    on activity_comment
+    for each row
+BEGIN
+    -- 更新 activity 表中的 rating
+    UPDATE activity
+    SET rating = (
+        SELECT COALESCE(AVG(rating), 0)
+        FROM activity_comment
+        WHERE activity_id = NEW.activity_id
+    )
+    WHERE id = NEW.activity_id;
+END;
+
+create table activity_enrollment
+(
+    enrollment_id   int auto_increment comment '报名ID'
+        primary key,
+    user_account    varchar(255)                         not null comment '用户账号',
+    activity_id     int                                  not null comment '活动ID',
+    enrollment_time datetime   default CURRENT_TIMESTAMP null comment '报名时间',
+    is_confirmed    tinyint(1) default 1                 null comment '是否确认参加',
+    constraint fk_enrollment_activity
+        foreign key (activity_id) references activity (id),
+    constraint fk_enrollment_user
+        foreign key (user_account) references user_table (user_account)
+)
+    comment '活动报名表';
+
+create index idx_activity_id
+    on activity_enrollment (activity_id);
+
+create index idx_user_account
+    on activity_enrollment (user_account);
+
+create definer = root@localhost trigger after_enrollment_delete
+    after delete
+    on activity_enrollment
+    for each row
+BEGIN
+    UPDATE activity
+    SET join_num = join_num - 1
+    WHERE id = OLD.activity_id;
+END;
+
+create definer = root@localhost trigger after_enrollment_insert
+    after insert
+    on activity_enrollment
+    for each row
+BEGIN
+    UPDATE activity
+    SET join_num = join_num + 1
+    WHERE id = NEW.activity_id;
+END;
+
+create definer = root@localhost trigger after_enrollment_update
+    after update
+    on activity_enrollment
+    for each row
+BEGIN
+    -- 如果确认状态发生变化
+    IF NEW.is_confirmed != OLD.is_confirmed THEN
+        -- 更新活动实际参与人数
+        UPDATE activity
+        SET join_num = join_num + CASE
+                                      WHEN NEW.is_confirmed = 1 THEN 1 -- 确认参加
+                                      ELSE -1 -- 取消确认
+            END,
+            updated_at = NOW()
+        WHERE id = NEW.activity_id;
+
+        -- 检查人数限制
+        UPDATE activity
+        SET status = CASE
+                         WHEN join_num >= most_join_num THEN 3 -- 报名人数已满
+                         WHEN status = 3 AND join_num < most_join_num THEN 2 -- 恢复报名
+                         ELSE status
+            END
+        WHERE id = NEW.activity_id;
+    END IF;
+END;
+
+create table announcement
+(
+    announcement_id varchar(64)                              not null comment '公告ID'
+        primary key,
+    title           varchar(255)                             not null comment '公告标题',
+    content         text                                     not null comment '公告文本内容',
+    images          json                                     null comment '图片链接数组（单张或最多5张）',
+    created_at      datetime(3) default CURRENT_TIMESTAMP(3) not null comment '发布时间',
+    admin_account   varchar(255)                             not null comment '发布管理员账号',
+    constraint fk_admin_account
+        foreign key (admin_account) references user_table (user_account),
+    constraint chk_images_limit
+        check (json_length(`images`) <= 5)
+)
+    comment '公告表';
+
+create table friend_message
+(
+    message_id       int auto_increment comment '消息ID'
+        primary key,
+    sender_account   varchar(255)                       not null comment '发送方账号',
+    receiver_account varchar(255)                       not null comment '接收方账号',
+    text_content     text                               null comment '文字内容',
+    image_url        varchar(512)                       null comment '图片链接（单张）',
+    created_at       datetime default CURRENT_TIMESTAMP null comment '发送时间',
+    constraint fk_message_receiver
+        foreign key (receiver_account) references user_table (user_account),
+    constraint fk_message_sender
+        foreign key (sender_account) references user_table (user_account),
+    constraint chk_content_not_null
+        check ((`text_content` is not null) or (`image_url` is not null))
+)
+    comment '好友消息表';
+
+create index idx_created_time
+    on friend_message (created_at);
+
+create index idx_sender_receiver
+    on friend_message (sender_account, receiver_account);
+
+create table friend_relationship
+(
+    id            int auto_increment comment '好友关系ID'
+        primary key,
+    user_account1 varchar(255)                       not null comment '用户账号1',
+    user_account2 varchar(255)                       not null comment '用户账号2',
+    created_at    datetime default CURRENT_TIMESTAMP null comment '创建时间',
+    constraint uniq_user_pair
+        unique (user_account1, user_account2),
+    constraint fk_user1
+        foreign key (user_account1) references user_table (user_account),
+    constraint fk_user2
+        foreign key (user_account2) references user_table (user_account)
+)
+    comment '好友关系表';
+
+create index idx_user_account1
+    on friend_relationship (user_account1);
+
+create index idx_user_account2
+    on friend_relationship (user_account2);
+
+create table friend_request
+(
+    request_id       int auto_increment comment '请求ID'
+        primary key,
+    sender_account   varchar(255)                       not null comment '请求方账号',
+    receiver_account varchar(255)                       not null comment '接收方账号',
+    status           tinyint  default 0                 null comment '请求状态（0=待处理, 1=已接受, 2=已拒绝）',
+    created_at       datetime default CURRENT_TIMESTAMP null comment '请求时间',
+    constraint chk_request_unique
+        unique (sender_account, receiver_account),
+    constraint fk_request_receiver
+        foreign key (receiver_account) references user_table (user_account),
+    constraint fk_request_sender
+        foreign key (sender_account) references user_table (user_account)
+)
+    comment '好友请求表';
+
+create table `group`
+(
+    group_id      int auto_increment comment '群组ID'
+        primary key,
+    group_name    varchar(50)                        not null comment '群名称',
+    owner_account varchar(255)                       not null comment '群主账号',
+    announcement  text                               null comment '群公告',
+    avatar        varchar(512)                       null comment '群头像链接',
+    created_at    datetime default CURRENT_TIMESTAMP null comment '创建时间',
+    status        tinyint  default 1                 null comment '状态（1=正常, 0=已解散）',
+    activity_id   int                                null comment '活动ID',
+    constraint fk_group_activity_id
+        foreign key (activity_id) references activity (id),
+    constraint fk_group_owner
+        foreign key (owner_account) references user_table (user_account)
+)
+    comment '群组信息表';
+
+create index idx_group_owner
+    on `group` (owner_account);
+
+create index idx_group_status
+    on `group` (status);
+
+create table group_member
+(
+    member_id    int auto_increment comment '成员关系ID'
+        primary key,
+    group_id     int                                not null comment '群组ID',
+    user_account varchar(255)                       not null comment '用户账号',
+    role         tinyint  default 2                 null comment '角色（0=群主, 1=管理员, 2=成员）',
+    joined_at    datetime default CURRENT_TIMESTAMP null comment '加入时间',
+    last_active  datetime                           null comment '最后活跃时间',
+    constraint uniq_group_member
+        unique (group_id, user_account),
+    constraint fk_member_group
+        foreign key (group_id) references `group` (group_id),
+    constraint fk_member_user
+        foreign key (user_account) references user_table (user_account)
+)
+    comment '群成员表';
+
+create index idx_member_group
+    on group_member (group_id);
+
+create index idx_member_user
+    on group_member (user_account);
+
+create table group_message
+(
+    message_id     int auto_increment comment '消息ID'
+        primary key,
+    sender_account varchar(255)                       not null comment '发送方账号',
+    group_id       bigint                             not null comment '群组ID',
+    text_content   text                               null comment '文字内容',
+    image_url      varchar(512)                       null comment '图片链接（单张）',
+    created_at     datetime default CURRENT_TIMESTAMP null comment '发送时间',
+    constraint fk_group_message_sender
+        foreign key (sender_account) references user_table (user_account),
+    constraint chk_group_content_not_null
+        check ((`text_content` is not null) or (`image_url` is not null))
+)
+    comment '群聊消息表';
+
+create index idx_group_member
+    on group_message (group_id, sender_account);
+
+create index idx_group_message_time
+    on group_message (created_at);
+
+create table user_follow
+(
+    follow_id    bigint auto_increment comment '关注ID'
+        primary key,
+    follower_id  varchar(255)                       not null comment '关注者用户ID',
+    following_id varchar(255)                       not null comment '被关注者用户ID',
+    created_at   datetime default CURRENT_TIMESTAMP null comment '关注时间',
+    constraint uk_follower_following
+        unique (follower_id, following_id),
+    constraint fk_follower_user
+        foreign key (follower_id) references user_table (user_account),
+    constraint fk_following_user
+        foreign key (following_id) references user_table (user_account),
+    constraint chk_not_self_follow
+        check (`follower_id` <> `following_id`)
+)
+    comment '用户关注关系表';
+
+create index idx_follower
+    on user_follow (follower_id);
+
+create index idx_following
+    on user_follow (following_id);
+

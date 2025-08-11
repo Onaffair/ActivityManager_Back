@@ -1,6 +1,7 @@
 package com.example.onaffair.online_chat.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.onaffair.online_chat.entity.Activity;
 import com.example.onaffair.online_chat.entity.UserParticipation;
@@ -8,6 +9,7 @@ import com.example.onaffair.online_chat.enums.ActivityStatus;
 import com.example.onaffair.online_chat.mapper.ActivityMapper;
 import com.example.onaffair.online_chat.mapper.UserParticipationMapper;
 import com.example.onaffair.online_chat.service.ActivityService;
+import com.example.onaffair.online_chat.service.GroupService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,9 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Autowired
     private UserParticipationMapper userParticipationMapper;
+    
+    @Autowired
+    private GroupService groupService;
 
     @Override
     public boolean createActivity(Activity activity) {
@@ -53,7 +58,8 @@ public class ActivityServiceImpl implements ActivityService {
         if (categoryId != 0){
             queryWrapper.eq("category_id",categoryId);
         }
-        queryWrapper.and(wrapper ->
+        queryWrapper
+                .and(wrapper ->
                         wrapper.like("title",keyword)
                             .or()
                             .like("address",keyword)
@@ -61,6 +67,8 @@ public class ActivityServiceImpl implements ActivityService {
                             .like("organizer",keyword)
                             .or()
                             .like("highlight",keyword))
+                .ne("status",ActivityStatus.REJECTED.getId())
+                .ne("status",ActivityStatus.TO_BE_AUDITED.getId())
                 .orderByDesc("created_at");
 
         Page<Activity> res = new Page<>();
@@ -154,9 +162,21 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public boolean joinActivity(UserParticipation userParticipation) {
-        Activity activity = activityMapper.selectById(userParticipation.getActivityId());
+
+//        存在数据库同步问题
+//        Activity activity = activityMapper.selectById(userParticipation.getActivityId());
+
+
+        /*悲观锁*/
+        Activity activity = activityMapper.selectOne(
+                new QueryWrapper<Activity>()
+                        .eq("id", userParticipation.getActivityId())
+                        .last("for update")
+        );
+
+
         if (activity == null){
             throw new RuntimeException("活动不存在");
         }
@@ -171,6 +191,69 @@ public class ActivityServiceImpl implements ActivityService {
             throw new RuntimeException("活动人数已满");
         }
         return userParticipationMapper.insert(userParticipation) > 0;
+    }
+    
+    @Override
+    public IPage<Activity> getPendingActivities(Integer page, Integer pageSize) {
+        Page<Activity> pageObj = new Page<>(page, pageSize);
+        QueryWrapper<Activity> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("status", ActivityStatus.TO_BE_AUDITED.getId());
+        queryWrapper.orderByDesc("created_at");
+        return activityMapper.selectPage(pageObj, queryWrapper);
+    }
+    
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean approveActivity(Integer activityId) {
+        Activity activity = activityMapper.selectById(activityId);
+        if (activity == null) {
+            throw new RuntimeException("活动不存在");
+        }
+        if (activity.getStatus() != ActivityStatus.TO_BE_AUDITED.getId()) {
+            throw new RuntimeException("活动状态不正确");
+        }
+        
+        // 更新活动状态为已通过
+        activity.setStatus(ActivityStatus.WAITING_FOR_REGISTRATION.getId());
+        boolean updateSuccess = activityMapper.updateById(activity) > 0;
+        
+        if (updateSuccess) {
+            // 创建群组
+            try {
+                groupService.createGroupByActivity(activity);
+                
+                // 自动让发起人加入活动
+                UserParticipation userParticipation = new UserParticipation();
+                userParticipation.setUserAccount(activity.getOrganizer());
+                userParticipation.setActivityId(activity.getId());
+                
+                QueryWrapper<UserParticipation> queryWrapper = new QueryWrapper<>();
+                queryWrapper.eq("user_account", activity.getOrganizer());
+                queryWrapper.eq("activity_id", activity.getId());
+                if (userParticipationMapper.selectCount(queryWrapper) == 0) {
+                    userParticipationMapper.insert(userParticipation);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("创建群组失败: " + e.getMessage());
+            }
+        }
+        
+        return updateSuccess;
+    }
+    
+    @Override
+    public boolean rejectActivity(Integer activityId) {
+        Activity activity = activityMapper.selectById(activityId);
+        if (activity == null) {
+            throw new RuntimeException("活动不存在");
+        }
+        if (activity.getStatus() != ActivityStatus.TO_BE_AUDITED.getId()) {
+            throw new RuntimeException("活动状态不正确");
+        }
+        
+        // 更新活动状态为已拒绝
+        activity.setStatus(ActivityStatus.REJECTED.getId());
+        return activityMapper.updateById(activity) > 0;
     }
 
 }
