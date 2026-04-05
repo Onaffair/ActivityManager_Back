@@ -63,11 +63,17 @@ public class ActivityRequest {
     // 自定义验证方法
     @AssertTrue(message = "结束时间必须晚于开始时间")
     public boolean isEndTimeValid() {
+        if (endTime == null || beginTime == null) {
+            return true;
+        }
         return endTime.isAfter(beginTime);
     }
 
     @AssertTrue(message = "最多人数必须大于最少人数")
     public boolean isParticipantValid() {
+        if (mostJoinNum == null || leastJoinNum == null) {
+            return true;
+        }
         return mostJoinNum > leastJoinNum;
     }
 }

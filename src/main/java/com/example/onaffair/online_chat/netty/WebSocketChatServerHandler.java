@@ -18,12 +18,14 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executor;
 
 
 @Component
@@ -36,7 +38,6 @@ public class WebSocketChatServerHandler extends SimpleChannelInboundHandler<Text
 
     public static final String KEY_FRIEND =  "friend";
     public static final String KEY_GROUP =  "group";
-
 
     @Autowired
     private UserService userService;
@@ -51,6 +52,11 @@ public class WebSocketChatServerHandler extends SimpleChannelInboundHandler<Text
     private GroupMemberService groupMemberService;
 
 
+    @Autowired
+    @Qualifier("myExecutor")
+    private Executor taskExecutor;
+
+
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, TextWebSocketFrame msg) throws Exception {
         String rawJson = msg.text();
@@ -60,17 +66,9 @@ public class WebSocketChatServerHandler extends SimpleChannelInboundHandler<Text
             FriendMessage friendMessage = objectMapper.convertValue(websocketMessage.getData(), FriendMessage.class);
             friendMessage.setCreatedAt(LocalDateTime.now());
             //存储信息
-            ctx.channel().eventLoop().execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        friendMessageService.addMessage(friendMessage);
-                    }catch (RuntimeException e){
-                       throw new RuntimeException(e);
-                    }
-                }
+            taskExecutor.execute(() ->{
+                friendMessageService.addMessage(friendMessage);
             });
-
 
             String serializedMessage = objectMapper.writeValueAsString(friendMessage);
             //信息写回发送者客户端
@@ -83,12 +81,10 @@ public class WebSocketChatServerHandler extends SimpleChannelInboundHandler<Text
             GroupMessage groupMessage = objectMapper.convertValue(websocketMessage.getData(), GroupMessage.class);
             groupMessage.setCreatedAt(LocalDateTime.now());
 
-            ctx.channel().eventLoop().execute(new Runnable() {
-                @Override
-                public void run() {
-                    groupMessageService.addGroupMessage(groupMessage);
-                }
+            taskExecutor.execute(() ->{
+                groupMessageService.addGroupMessage(groupMessage);
             });
+
             //转发群聊信息
             String serializedMessage = objectMapper.writeValueAsString(groupMessage);
             List<GroupMember> groupMemberList = groupMemberService.getGroupMemberList(groupMessage.getGroupId());
@@ -100,7 +96,7 @@ public class WebSocketChatServerHandler extends SimpleChannelInboundHandler<Text
 
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
-        System.out.println(ctx.channel().remoteAddress()+"连接到服务器");
+//        System.out.println(ctx.channel().remoteAddress()+"连接到服务器");
     }
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -139,8 +135,6 @@ public class WebSocketChatServerHandler extends SimpleChannelInboundHandler<Text
             String account = getAccount(ctx);
             ChannelManager.addChannel(account, ctx.channel());
 
-
-
             /*用户上线*/
             User user = userService.findByAccount(account);
             user.setStatus("online");
@@ -153,9 +147,7 @@ public class WebSocketChatServerHandler extends SimpleChannelInboundHandler<Text
     private String getAccount(ChannelHandlerContext ctx){
         return ctx.channel().attr(SubprotocolTokenHandler.KEY_USER).get();
     }
-
     private void sendMessage(ChannelHandlerContext ctx,String msg,String account){
-
 
         //信息转发
         Set<Channel> channelsByAccount = ChannelManager.getChannelsByAccount(account);

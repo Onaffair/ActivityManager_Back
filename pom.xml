@@ -108,6 +108,10 @@
             <artifactId>aliyun-sdk-oss</artifactId>
             <version>3.18.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
@@ -115,8 +119,20 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- 排除开发工具依赖，减小生产包体积 -->
+                    <excludeDevtools>true</excludeDevtools>
+                    <!-- 启用分层打包，优化Docker镜像构建 -->
+                    <layers>
+                        <enabled>true</enabled>
+                    </layers>
+                    <!-- 跳过检查，加快构建速度 -->
+                    <skip>false</skip>
+                    <!-- 使用fork模式但优化JVM参数 -->
+                    <fork>true</fork>
+                    <jvmArguments>-Xmx1024m -XX:MaxMetaspaceSize=256m</jvmArguments>
+                </configuration>
             </plugin>
         </plugins>
     </build>
-
 </project>

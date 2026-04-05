@@ -90,7 +90,6 @@ public class UserServiceImpl implements UserService {
     }
     @Override
     public User findByAccountAndPassword(UserLoginRequest user) {
-
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("user_account",user.getAccount())
                 .eq("user_password",user.getPassword());
@@ -105,7 +104,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Boolean updateUser(String account,User user) {
-        System.out.println(user);
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
 
         queryWrapper.eq("user_account",account);

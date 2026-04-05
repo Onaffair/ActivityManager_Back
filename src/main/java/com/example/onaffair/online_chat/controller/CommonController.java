@@ -106,7 +106,6 @@ public class CommonController {
             request.setContentType("application/octet-stream");
 
             URL signUrl = ossClient.generatePresignedUrl(request);
-
             String accessUrl = "https://" + bucket + "." + endpoint.split("//")[1]  + "/" +  objectName;
             System.out.println(accessUrl);
             System.out.println(signUrl);

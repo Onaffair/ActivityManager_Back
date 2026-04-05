@@ -73,7 +73,10 @@ public class AIController {
     public SseEmitter chat(@Validated @RequestBody AIChatRequest request){
 
         String account = SecurityContextHolder.getContext().getAuthentication().getName();
-        Activity activity = activityService.getActivityById(request.getActivityId());
+        Activity activity = null;
+        if (request.getActivityId() != null) {
+            activity = activityService.getActivityById(request.getActivityId());
+        }
         String content = request.getContent();
         List<AIChatLog.ImageInfo> imageInfo = request.getImageInfo();
 
@@ -114,6 +117,7 @@ public class AIController {
         });
 
         //异步执行
+        Activity finalActivity = activity;
         taskExecutor.execute(() ->{
             try {
                 //构建DS请求体
@@ -124,26 +128,28 @@ public class AIController {
                 List<Map<String,Object>> messages = new ArrayList<>();
 
                 //用户上传的图片信息
-                if (!imageInfo.isEmpty()){
+                if (imageInfo != null && !imageInfo.isEmpty()){
                     messages.add(Map.of("role","user","content",IMG_PROMPT+imageInfo.toString()));
                 }
                 //活动信息
-                StringBuilder activityInfo = new StringBuilder();
-                activityInfo.append(
-                        String.format(
-                                "以下是活动信息：" +
-                                "标题: %s" +
-                                "时间: %s" +
-                                "地点: %s" +
-                                "简介: %s" +
-                                "亮点: %s",
-                                activity.getTitle(),
-                                activity.getBeginTime(),
-                                activity.getAddress(),
-                                activity.getContent(),
-                                activity.getHighlight()
-                        ));
-                messages.add(Map.of("role", "system", "content", activityInfo.toString()));
+                if (finalActivity != null) {
+                    StringBuilder activityInfo = new StringBuilder();
+                    activityInfo.append(
+                            String.format(
+                                    "以下是活动信息：" +
+                                    "标题: %s" +
+                                    "时间: %s" +
+                                    "地点: %s" +
+                                    "简介: %s" +
+                                    "亮点: %s",
+                                    finalActivity.getTitle(),
+                                    finalActivity.getBeginTime(),
+                                    finalActivity.getAddress(),
+                                    finalActivity.getContent(),
+                                    finalActivity.getHighlight()
+                            ));
+                    messages.add(Map.of("role", "system", "content", activityInfo.toString()));
+                }
 
                 // 聊天历史
                 aiChatHistory.forEach(item ->{
@@ -203,7 +209,6 @@ public class AIController {
         emitter.onError((e) ->{
             emitter.completeWithError(e);
         });
-
         taskExecutor.execute(() ->{
             try {
                 //构建请求体

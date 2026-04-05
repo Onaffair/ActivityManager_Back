@@ -31,10 +31,8 @@ public class SubprotocolTokenHandler extends SimpleChannelInboundHandler<FullHtt
             String[] protocols = protocol.split(",");
             String subprotocol  = protocols[0].trim(); // "auth"
             String token = protocols.length > 1 ? protocols[1].trim() : null;
-
             String account = JwtUtil.extractUserAccount(token);
             ctx.channel().attr(KEY_USER).set(account);
-
 
         }else{
             return;

@@ -20,7 +20,6 @@ public class AIChatRequest {
     private String sessionId;
 
     private String parentId;
-    @NotNull(message = "活动id不能为空")
     private Integer activityId;
     @NotBlank(message = "内容不能为空")
     private String content;

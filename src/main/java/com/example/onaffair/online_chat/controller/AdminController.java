@@ -22,6 +22,7 @@ import org.springframework.security.core.Authentication;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -154,6 +155,7 @@ public class AdminController {
             return Result.success(true);
         } catch (Exception e) {
             // Transaction will automatically rollback due to @Transactional
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return Result.error(ResultCode.ERROR, e.getMessage());
         }
     }
@@ -190,6 +192,7 @@ public class AdminController {
 
             return Result.success(true);
         } catch (Exception e) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return Result.error(ResultCode.ERROR, e.getMessage());
         }
     }
@@ -467,6 +470,7 @@ public class AdminController {
             }
         } catch (Exception e) {
             log.error("活动审核通过失败", e);
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return Result.error(ResultCode.ERROR, "服务器错误");
         }
     }

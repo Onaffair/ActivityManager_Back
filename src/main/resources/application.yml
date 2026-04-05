@@ -6,7 +6,7 @@ spring:
             date-time: yyyy-MM-dd HH:mm:ss
     jackson:
         date-format: yyyy-MM-dd HH:mm:ss
-        time-zone: GMT+8
+        time-zone: GMT+8 #东八区
         serialization:
           write-dates-as-timestamps: false
     datasource:
@@ -41,6 +41,8 @@ ai:
             url: https://api.siliconflow.cn/v1/chat/completions
             model: deepseek-ai/deepseek-vl2
 
+
+
 oss:
     address: https://oss-cn-hangzhou.aliyuncs.com
     access-id: ${ALIYUN_ACCESSKEY_ID:}
@@ -48,8 +50,14 @@ oss:
     bucket: onaffair
     role-arn: ${ALIYUN_OSS_STS_ROLE_ARN}
     region: oss-cn-hangzhou
+    urlExpire: 3600
 
 server:
     port: 721
     address: 0.0.0.0
+
+
+
+
+
 

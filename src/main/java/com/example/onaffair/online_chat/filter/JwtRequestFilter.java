@@ -30,6 +30,10 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -122,7 +126,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         response.setStatus(code.getCode());
         Result<?> res = Result.error(code, msg);
         try {
-            String jsonRes = new ObjectMapper().writeValueAsString(res);
+            String jsonRes = objectMapper.writeValueAsString(res);
             response.getWriter().write(jsonRes);
             response.getWriter().flush();
         } catch (Exception ignored) {

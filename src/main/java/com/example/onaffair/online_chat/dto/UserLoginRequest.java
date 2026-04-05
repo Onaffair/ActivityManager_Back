@@ -17,6 +17,6 @@ public class UserLoginRequest { //登录信息
     private String account;
 
     @NotBlank(message = "密码不能为空")
-    @Size(min = 3,max = 255,message = "密码长度在3-255之间")
+    @Size(min = 3,max = 2048,message = "密码长度在3-2048之间")
     private String password;
 }

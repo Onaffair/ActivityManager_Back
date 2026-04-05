@@ -546,7 +546,7 @@ public class UserController {
      * @param size 每页大小
      * @return 公告列表
      */
-    @GetMapping("/announcements")
+    @GetMapping("/public/announcements")
     public Result<IPage<Announcement>> getAnnouncements(
             @RequestParam(defaultValue = "1") Integer current,
             @RequestParam(defaultValue = "10") Integer size) {
@@ -564,7 +564,7 @@ public class UserController {
      * @param announcementId 公告ID
      * @return 公告详情
      */
-    @GetMapping("/announcements/{announcementId}")
+    @GetMapping("/public/announcements/{announcementId}")
     public Result<Announcement> getAnnouncementDetail(@PathVariable String announcementId) {
         try {
             Announcement announcement = announcementService.getAnnouncementById(announcementId);
