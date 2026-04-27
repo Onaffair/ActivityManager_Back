@@ -35,11 +35,11 @@ ai:
         deepseek:
             key: ${DEEPSEEK_API:}
             url: https://api.deepseek.com/v1/chat/completions
-            model: deepseek-chat
+            model: deepseek-v4-flash
         VL:
             key: ${DASHSCOPE_API}
             url: https://api.siliconflow.cn/v1/chat/completions
-            model: deepseek-ai/deepseek-vl2
+            model: Pro/moonshotai/Kimi-K2.6
 
 
 

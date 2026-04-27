@@ -25,5 +25,7 @@ public class AIChatRequest {
     private String content;
     @Size(max = 5,message = "图片数量不能超过5张")
     private List<AIChatLog.ImageInfo> imageInfo;
+    private boolean thinking = false;
+
 
 }
